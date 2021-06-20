@@ -1,0 +1,17 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  annotations:
+  name: jaeger
+  namespace: observability
+spec:
+  gateways:
+    - sh-k8scls01-dev-comm-app01/istio-gateway-dev
+  hosts:
+    - 'jaeger.dev.lululemon.cn'
+  http:
+    - route:
+        - destination:
+            host: simplest-query.observability.svc.cluster.local
+            port:
+              number: 16686

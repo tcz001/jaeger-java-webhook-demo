@@ -1,0 +1,80 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auto-tracing-mutating-webhook
+  namespace: observability
+  labels:
+    app: auto-tracing-mutating-webhook
+spec:
+  publishNotReadyAddresses: true
+  ports:
+    - port: 443
+      targetPort: 5000
+  selector:
+    app: auto-tracing-mutating-webhook
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-tracing-mutating-webhook
+  namespace: observability
+  labels:
+    app: auto-tracing-mutating-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auto-tracing-mutating-webhook
+  template:
+    metadata:
+      name: auto-tracing-mutating-webhook
+      labels:
+        app: auto-tracing-mutating-webhook
+    spec:
+      containers:
+        - name: auto-tracing-mutating-webhook
+          image: tcz001/auto-tracing-webhook:0.0.6
+          imagePullPolicy: Always
+          env:
+          - name: JAEGER_AGENT_PORT
+            value: "5775"
+          - name: JAEGER_AGENT_HOST
+            value: "simplest-agent.observability.svc"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 250m
+              memory: 64Mi
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: auto-tracing-mutating-webhook
+  labels:
+    app: auto-tracing-mutating-webhook
+webhooks:
+  - name: auto-tracing-mutating-webhook.observability.svc.cluster.local
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUR0ekNDQXArZ0F3SUJBZ0lVRWpPckpBZkd6M1RySEhlZCtxeTJsNmlvRWtnd0RRWUpLb1pJaHZjTkFRRUwKQlFBd09qRTRNRFlHQTFVRUF3d3ZRV1J0YVhOemFXOXVJRU52Ym5SeWIyeHNaWElnVjJWaWFHOXZheUJFWlcxdgpJRU5CUURFMk1qUXhOek15T0RJd0hoY05NakV3TmpJd01EY3hORFF5V2hjTk16RXdOakU0TURjeE5EUXlXakE2Ck1UZ3dOZ1lEVlFRRERDOUJaRzFwYzNOcGIyNGdRMjl1ZEhKdmJHeGxjaUJYWldKb2IyOXJJRVJsYlc4Z1EwRkEKTVRZeU5ERTNNekk0TWpDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTGhleXpyNAorRjRhSENNR2VsclcvNXlwMC8rOEVDWU5PdmtNMzZiVngwbEQ0UG1QdHpjdkJpMVdLeFhWT1NUd0IrL3B0TDBhCkVjZmxLNlpwMDJBcktoL2EvdXVQSWhKVnFia25kOGFtS0YvMzhSaE50NzBjM3pIM2FESVFDd0VWTzR4NmtYaXIKTURzUEFWMXZuejAxS2c2cDlzYUNqeDlRS1F1bTJSQm5FWGJibE9kbFZZekFDZEpQRG1zRnFaQXBiUVA3SnhaSAowSHova2NzL0RZSlI1YnRMZkoxb3NiTDM1Z0EydmY1UURrUGtRS3hlTFpOTW9OdUgwZXk3L3VPUkZ1VTYreFFxCnF2SWswWlUzRnZpVC84NkcySEt4UjFGZ2tzV2NxejI3SmFRZWxyVzJadVhOK3Fod04wU25pKy9OaEREdVAwclAKUGpVcjU3SXd4RHMrZjRrQ0F3RUFBYU9CdERDQnNUQWRCZ05WSFE0RUZnUVVsSHY0cWc5MlpjTHczbFJRSEt4ZgpWUGZuUjA0d2RRWURWUjBqQkc0d2JJQVVsSHY0cWc5MlpjTHczbFJRSEt4ZlZQZm5SMDZoUHFROE1Eb3hPREEyCkJnTlZCQU1NTDBGa2JXbHpjMmx2YmlCRGIyNTBjbTlzYkdWeUlGZGxZbWh2YjJzZ1JHVnRieUJEUVVBeE5qSTAKTVRjek1qZ3lnaFFTTTZza0I4YlBkT3NjZDUzNnJMYVhxS2dTU0RBTUJnTlZIUk1FQlRBREFRSC9NQXNHQTFVZApEd1FFQXdJQkJqQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFmU01CWk1yK281b1ZldUlQbCtsU3liaE5yR0I2CkpIQzhlcWJQNWRtVjdaYmV5MTBSM2Nka3VSQ1FYamNqQTZtWUdLRUxsTW4wZ2tvbjJqUVhRVlVWVXNMZEFNcVIKQWx5bWhUZGJSSDNCdHFnZDZTWWVKbnZPM01yejJqRSttV2xINWZFOTBkeUplZjZvbDBqaHlQZDBGdnpvbXB5bQo2a3NDSzlnV0dVbFk4ZmpBK0I4d0tHczVDYjZ3eG1hMkphaStCZnlwYnFtanU1MzMxOFZiVU5RSzlKU1FtYnZwClRQQUIybTJsdTlSL25MNUk5ZEJGUHVWTFJUY1RLZ3Bnc0hiYkhhUGd6UHp3dVNTNnZYeGNZQy8xbEc1OEVLVW0KeGMycE5TYU5DRVl6TCs3V1BMd0NtMys5YjJEL2pSb3doczFDc3JqU2JJRVFneU1Pdjl4aXJYSTNNdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+      service:
+        name: auto-tracing-mutating-webhook
+        namespace: observability
+        path: "/decorate"
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        scope: "Namespaced"
+    failurePolicy: Fail
+    namespaceSelector:
+      matchLabels:
+        autotrace: enabled
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
